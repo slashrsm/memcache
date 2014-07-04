@@ -7,7 +7,7 @@
 
 namespace Drupal\memcache;
 
-use Drupal\Component\Utility\Settings;
+use Drupal\Core\Site\Settings;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Lock\LockBackendInterface;
 
@@ -47,7 +47,7 @@ class MemcacheBackend implements CacheBackendInterface {
   /**
    * The Settings instance.
    *
-   * @var \Drupal\Component\Utility\Settings
+   * @var \Drupal\Core\Site\Settings
    */
   protected $settings;
 
