@@ -7,7 +7,6 @@
 
 namespace Drupal\memcache\Tests;
 
-use Drupal\memcache\MemcacheBackendFactory;
 use Drupal\system\Tests\Cache\GenericCacheBackendUnitTestBase;
 
 /**
@@ -37,8 +36,7 @@ class MemcacheBackendUnitTest extends GenericCacheBackendUnitTestBase {
    *   A new MemcacheBackend object.
    */
   protected function createCacheBackend($bin) {
-    $factory = new MemcacheBackendFactory($this->container->get('lock'), $this->container->get('settings'), $this->container->get('memcache.factory'));
-    return $factory->get($bin);
+    return $this->container->get('cache.backend.memcache')->get($bin);
   }
 
 }
