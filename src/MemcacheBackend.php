@@ -171,6 +171,17 @@ class MemcacheBackend implements CacheBackendInterface {
   /**
    * {@inheritdoc}
    */
+  function setMultiple(array $items) {
+    foreach ($items as $cid => $item) {
+      $expire = empty($item['expire']) ? CacheBackendInterface::CACHE_PERMANENT : $item['expire'];
+      $tags = empty($item['tags']) ? array() : $item['tags'];
+      $this->set($cid, $item['data'], $expire, $tags);
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function delete($cid) {
     $this->memcache->delete($cid);
   }
