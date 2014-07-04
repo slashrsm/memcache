@@ -65,11 +65,11 @@ abstract class DrupalMemcacheBase implements DrupalMemcacheInterface {
     $full_key = $this->key($key);
 
     ini_set('track_errors', '1');
-    $error = '';
-    $result = @$this->memcache->get($full_key);
+    $php_errormsg = '';
+    $result = $this->memcache->get($full_key);
 
-    if (!empty($error)) {
-      register_shutdown_function('watchdog', 'memcache', 'Exception caught in DrupalMemcache::get !msg', array('!msg' => $error), WATCHDOG_WARNING);
+    if (!empty($php_errormsg)) {
+      register_shutdown_function('watchdog', 'memcache', 'Exception caught in DrupalMemcache::get !msg', array('!msg' => $php_errormsg), WATCHDOG_WARNING);
     }
 
     return $result;

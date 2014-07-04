@@ -80,11 +80,11 @@ class DrupalMemcache extends DrupalMemcacheBase {
     }
 
     ini_set('track_errors', 1);
-    $error = '';
-    $results = @$this->memcache->get($full_keys);
+    $php_errormsg = '';
+    $results = $this->memcache->get($full_keys);
 
-    if (!empty($error)) {
-      register_shutdown_function('watchdog', 'memcache', 'Exception caught in DrupalMemcache::getMulti: !msg', array('!msg' => $error), WATCHDOG_WARNING);
+    if (!empty($php_errormsg)) {
+      register_shutdown_function('watchdog', 'memcache', 'Exception caught in DrupalMemcache::getMulti: !msg', array('!msg' => $php_errormsg), WATCHDOG_WARNING);
     }
 
     // If $results is FALSE, convert it to an empty array.
