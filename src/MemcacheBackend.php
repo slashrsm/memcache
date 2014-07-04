@@ -149,16 +149,8 @@ class MemcacheBackend implements CacheBackendInterface {
     $cache->cid = $cid;
     $cache->data = is_object($data) ? clone $data : $data;
     $cache->created = REQUEST_TIME;
-
-    // Expire time is in seconds if less than 30 days, otherwise is a timestamp.
-    if ($expire != CacheBackendInterface::CACHE_PERMANENT && ($expire < 2592000)) {
-      // Expire is expressed in seconds, convert to the proper future timestamp
-      // as expected in DrupalMemcache::set().
-      $cache->expire = REQUEST_TIME + $expire;
-    }
-    else {
-      $cache->expire = $expire;
-    }
+    $cache->expire = $expire;
+    $cache->tags = $tags;
 
     // Manually track the expire time in $cache->expire.  When the object
     // expires, if stampede protection is enabled, it may be served while one
@@ -167,13 +159,10 @@ class MemcacheBackend implements CacheBackendInterface {
     // rather than evicted along with a sufficient period for stampede
     // protection to continue to work.
     if (($cache->expire == CacheBackendInterface::CACHE_PERMANENT)) {
-      $memcache_expire = $cache->expire;
-    }
-    elseif (($cache->expire < REQUEST_TIME)) {
-      $memcache_expire = CacheBackendInterface::CACHE_PERMANENT;
+      $memcache_expire = 0;
     }
     else {
-      $memcache_expire = $cache->expire + ($cache->expire - REQUEST_TIME * 2);
+      $memcache_expire = $cache->expire + (abs($cache->expire - REQUEST_TIME) * 2);
     }
 
     return $this->memcache->set($cid, $cache, $memcache_expire);
