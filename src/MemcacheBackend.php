@@ -185,7 +185,7 @@ class MemcacheBackend implements CacheBackendInterface {
    * {@inheritdoc}
    */
   public function set($cid, $data, $expire = CacheBackendInterface::CACHE_PERMANENT, array $tags = array()) {
-    assert('\Drupal\Component\Assertion\Inspector::assertAllStrings($tags)');
+    assert(\Drupal\Component\Assertion\Inspector::assertAllStrings($tags));
     $tags = array_unique($tags);
     // Sort the cache tags so that they are stored consistently.
     sort($tags);
