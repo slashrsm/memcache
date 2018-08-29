@@ -87,6 +87,22 @@ class DrupalMemcache extends DrupalMemcacheBase {
   /**
    * {@inheritdoc}
    */
+  public function add($key, $value, $expire = 0) {
+    $collect_stats = $this->stats_init();
+
+    $full_key = $this->key($key);
+    $result = $this->memcache->add($full_key, $value,false, $expire);
+
+    if ($collect_stats) {
+      $this->stats_write('add', 'cache', [$full_key => (int)$result]);
+    }
+
+    return $result;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function getMulti(array $keys) {
     $collect_stats = $this->stats_init();
     $multi_stats   = [];
