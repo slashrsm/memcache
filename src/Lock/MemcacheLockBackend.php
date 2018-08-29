@@ -20,7 +20,7 @@ class MemcacheLockBackend extends LockBackendAbstract {
    *
    * @var array
    */
-  protected $locks = array();
+  protected $locks = [];
 
   /**
    * The bin name for this lock.

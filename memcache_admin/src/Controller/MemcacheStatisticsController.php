@@ -199,13 +199,13 @@ class MemcacheStatisticsController extends ControllerBase {
     // }
 
     // @todo - breadcrumb
-    // $breadcrumbs = array(
+    // $breadcrumbs = [
     //   l(t('Home'), NULL),
     //   l(t('Administer'), 'admin'),
     //   l(t('Reports'), 'admin/reports'),
     //   l(t('Memcache'), 'admin/reports/memcache'),
     //   l(t($bin), "admin/reports/memcache/$bin"),
-    // );
+    // ];
     // if ($type == 'slabs' && arg(6) == 'cachedump' && user_access('access slab cachedump')) {
     //   $breadcrumbs[] = l($server, "admin/reports/memcache/$bin/$server");
     //   $breadcrumbs[] = l(t('slabs'), "admin/reports/memcache/$bin/$server/$type");

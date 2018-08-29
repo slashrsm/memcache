@@ -89,7 +89,7 @@ class MemcacheBackend implements CacheBackendInterface {
    * {@inheritdoc}
    */
   public function get($cid, $allow_invalid = FALSE) {
-    $cids = array($cid);
+    $cids = [$cid];
     $cache = $this->getMultiple($cids, $allow_invalid);
     return reset($cache);
   }
@@ -192,7 +192,7 @@ class MemcacheBackend implements CacheBackendInterface {
   /**
    * {@inheritdoc}
    */
-  public function set($cid, $data, $expire = CacheBackendInterface::CACHE_PERMANENT, array $tags = array()) {
+  public function set($cid, $data, $expire = CacheBackendInterface::CACHE_PERMANENT, array $tags = []) {
     assert(Inspector::assertAllStrings($tags));
 
     $tags[] = "memcache:$this->bin";
@@ -218,10 +218,10 @@ class MemcacheBackend implements CacheBackendInterface {
    */
   public function setMultiple(array $items) {
     foreach ($items as $cid => $item) {
-      $item += array(
+      $item += [
         'expire' => CacheBackendInterface::CACHE_PERMANENT,
-        'tags' => array(),
-      );
+        'tags' => [],
+      ];
 
       $this->set($cid, $item['data'], $item['expire'], $item['tags']);
     }

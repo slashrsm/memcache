@@ -22,10 +22,10 @@ class DrupalMemcached extends DrupalMemcacheBase {
 
     $this->memcache = new \Memcached();
 
-    $default_opts = array(
+    $default_opts = [
       \Memcached::OPT_COMPRESSION => FALSE,
       \Memcached::OPT_DISTRIBUTION => \Memcached::DISTRIBUTION_CONSISTENT,
-    );
+    ];
     foreach ($default_opts as $key => $value) {
       $this->memcache->setOption($key, $value);
     }
@@ -88,7 +88,7 @@ class DrupalMemcached extends DrupalMemcacheBase {
     $collect_stats = $this->stats_init();
     $multi_stats   = [];
 
-    $full_keys = array();
+    $full_keys = [];
 
     foreach ($keys as $key => $cid) {
       $full_key = $this->key($cid);
@@ -108,7 +108,7 @@ class DrupalMemcached extends DrupalMemcacheBase {
 
     // If $results is FALSE, convert it to an empty array.
     if (!$results) {
-      $results = array();
+      $results = [];
     }
 
     if ($collect_stats) {
@@ -118,7 +118,7 @@ class DrupalMemcached extends DrupalMemcacheBase {
     }
 
     // Convert the full keys back to the cid.
-    $cid_results = array();
+    $cid_results = [];
     $cid_lookup = array_flip($full_keys);
 
     foreach (array_filter($results) as $key => $value) {

@@ -37,7 +37,7 @@ class MemcacheAdminSubscriber implements EventSubscriberInterface {
     //   substr($_GET['q'], 0, strlen('batch')) == 'batch'
     //   strstr($_GET['q'], 'autocomplete')
     //   substr($_GET['q'], 0, strlen('system/files')) == 'system/files'
-    //   in_array($_GET['q'], array('upload/js', 'admin/content/node-settings/rebuild'))
+    //   in_array($_GET['q'], ['upload/js', 'admin/content/node-settings/rebuild'])
     // @todo validate these checks
     if ($user->id() == 0) {
       // suppress for the above criteria.

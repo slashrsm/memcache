@@ -26,12 +26,12 @@ class MemcacheAdminSettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
-    $form['show_memcache_statistics'] = array(
+    $form['show_memcache_statistics'] = [
       '#type'          => 'checkbox',
       '#title'         => t('Show memcache statistics at the bottom of each page'),
       '#default_value' => \Drupal::config('memcache_admin.settings')->get('show_memcache_statistics'),
       '#description'   => t("These statistics will be visible to users with the 'access memcache statistics' permission."),
-    );
+    ];
 
     return parent::buildForm($form, $form_state);
   }
