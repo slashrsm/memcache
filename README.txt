@@ -249,14 +249,14 @@ default options (selected through performance testing). These options will be
 set unless overridden in settings.php.
 
   $settings['memcache']['options'] = [
-    Memcached::OPT_COMPRESSION => FALSE,
+    Memcached::OPT_COMPRESSION => TRUE,
     Memcached::OPT_DISTRIBUTION => Memcached::DISTRIBUTION_CONSISTENT,
   ];
 
 These are as follows:
 
- * Turn off compression, as this takes more CPU cycles than it's worth for most
-   users
+ * Turn on compression, as this allows more data to be stored and in turn
+   should result in less evictions.
  * Turn on consistent distribution, which allows you to add/remove servers
    easily
 

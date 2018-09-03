@@ -23,7 +23,7 @@ class DrupalMemcached extends DrupalMemcacheBase {
     $this->memcache = new \Memcached();
 
     $default_opts = [
-      \Memcached::OPT_COMPRESSION => FALSE,
+      \Memcached::OPT_COMPRESSION => TRUE,
       \Memcached::OPT_DISTRIBUTION => \Memcached::DISTRIBUTION_CONSISTENT,
     ];
     foreach ($default_opts as $key => $value) {
