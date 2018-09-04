@@ -1,8 +1,9 @@
 <?php
 
-namespace Drupal\memcache\Driver;
+namespace Drupal\memcache\Connection;
 
-use Drupal\memcache\DrupalMemcacheConfig;
+use Drupal\memcache\Connection\MemcacheConnectionInterface;
+use Drupal\memcache\MemcacheSettings;
 
 class MemcachedConnection implements MemcacheConnectionInterface {
 
@@ -16,10 +17,10 @@ class MemcachedConnection implements MemcacheConnectionInterface {
   /**
    * Constructs a MemcachedConnection object.
    *
-   * @param \Drupal\memcache\DrupalMemcacheConfig $settings
+   * @param \Drupal\memcache\MemcacheSettings $settings
    *   The memcache config object.
    */
-  public function __construct(DrupalMemcacheConfig $settings) {
+  public function __construct(MemcacheSettings $settings) {
     $this->memcache = new \Memcached();
 
     $default_opts = [

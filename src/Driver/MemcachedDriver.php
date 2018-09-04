@@ -1,19 +1,11 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\memcache\DrupalMemcache.
- */
-
-namespace Drupal\memcache;
-
-use Psr\Log\LogLevel;
-use Drupal\Component\Utility\Timer;
+namespace Drupal\memcache\Driver;
 
 /**
- * Class DrupalMemcache.
+ * Class MemcachedDriver.
  */
-class DrupalMemcache extends DrupalMemcacheBase {
+class MemcachedDriver extends DriverBase {
 
   /**
    * {@inheritdoc}
@@ -22,7 +14,7 @@ class DrupalMemcache extends DrupalMemcacheBase {
     $collect_stats = $this->stats_init();
 
     $full_key = $this->key($key);
-    $result = $this->memcache->set($full_key, $value, $flag, $exp);
+    $result = $this->memcache->set($full_key, $value, $exp);
 
     if ($collect_stats) {
       $this->stats_write('set', 'cache', [$full_key => (int)$result]);
@@ -38,7 +30,7 @@ class DrupalMemcache extends DrupalMemcacheBase {
     $collect_stats = $this->stats_init();
 
     $full_key = $this->key($key);
-    $result = $this->memcache->add($full_key, $value,false, $expire);
+    $result = $this->memcache->add($full_key, $value, $expire);
 
     if ($collect_stats) {
       $this->stats_write('add', 'cache', [$full_key => (int)$result]);
@@ -65,7 +57,12 @@ class DrupalMemcache extends DrupalMemcacheBase {
       }
     }
 
-    $results = $this->memcache->get($full_keys);
+    if (PHP_MAJOR_VERSION === 7) {
+      $results = $this->memcache->getMulti($full_keys, \Memcached::GET_PRESERVE_ORDER);
+    } else {
+      $cas_tokens = NULL;
+      $results = $this->memcache->getMulti($full_keys, $cas_tokens, \Memcached::GET_PRESERVE_ORDER);
+    }
 
     // If $results is FALSE, convert it to an empty array.
     if (!$results) {
@@ -80,12 +77,10 @@ class DrupalMemcache extends DrupalMemcacheBase {
 
     // Convert the full keys back to the cid.
     $cid_results = [];
+    $cid_lookup = array_flip($full_keys);
 
-    // Order isn't guaranteed, so ensure the return order matches that
-    // requested. So base the results on the order of the full_keys, as they
-    // reflect the order of the $cids passed in.
-    foreach (array_intersect($full_keys, array_keys($results)) as $cid => $full_key) {
-      $cid_results[$cid] = $results[$full_key];
+    foreach (array_filter($results) as $key => $value) {
+      $cid_results[$cid_lookup[$key]] = $value;
     }
 
     if ($collect_stats) {

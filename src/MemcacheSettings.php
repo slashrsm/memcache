@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\memcache\DrupalMemcacheConfig.
- */
-
 namespace Drupal\memcache;
 
 use Drupal\Core\Site\Settings;
@@ -12,7 +7,7 @@ use Drupal\Core\Site\Settings;
 /**
  * Class for holding Memcache related config
  */
-class DrupalMemcacheConfig {
+class MemcacheSettings {
 
   /**
    * Array with the settings.

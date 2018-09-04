@@ -1,8 +1,8 @@
 <?php
 
-namespace Drupal\memcache\Driver;
+namespace Drupal\memcache\Connection;
 
-use Drupal\memcache\DrupalMemcacheConfig;
+use Drupal\memcache\Connection\MemcacheConnectionInterface;
 
 class MemcacheConnection implements MemcacheConnectionInterface {
 

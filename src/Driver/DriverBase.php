@@ -1,23 +1,20 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\memcache\DrupalMemcacheBase.
- */
-
-namespace Drupal\memcache;
+namespace Drupal\memcache\Driver;
 
 use Drupal\Component\Utility\Timer;
+use Drupal\memcache\MemcacheSettings;
+use Drupal\memcache\DrupalMemcacheInterface;
 
 /**
- * Class DrupalMemcacheBase.
+ * Class DriverBase.
  */
-abstract class DrupalMemcacheBase implements DrupalMemcacheInterface {
+abstract class DriverBase implements DrupalMemcacheInterface {
 
   /**
    * The memcache config object.
    *
-   * @var \Drupal\memcache\DrupalMemcacheConfig
+   * @var \Drupal\memcache\MemcacheSettings
    */
   protected $settings;
 
@@ -56,14 +53,14 @@ abstract class DrupalMemcacheBase implements DrupalMemcacheInterface {
   /**
    * Constructs a DrupalMemcacheBase object.
    *
-   * @param \Drupal\memcache\DrupalMemcacheConfig
+   * @param \Drupal\memcache\MemcacheSettings
    *   The memcache config object.
    * @param \Memcached|\Memcache $connection
    *   An existing memcache connection object.
    * @param string $bin
    *   The class instance specific cache bin to use.
    */
-  public function __construct(DrupalMemcacheConfig $settings, $memcache, $bin = NULL) {
+  public function __construct(MemcacheSettings $settings, $memcache, $bin = NULL) {
     $this->settings = $settings;
     $this->memcache = $memcache;
 

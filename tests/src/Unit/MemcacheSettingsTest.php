@@ -1,21 +1,16 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\memcache\Tests\DrupalMemcacheConfigTest.
- */
-
 namespace Drupal\Tests\memcache\Unit;
 
-use Drupal\memcache\DrupalMemcacheConfig;
+use Drupal\memcache\MemcacheSettings;
 use Drupal\Core\Site\Settings;
 use Drupal\Tests\UnitTestCase;
 
 /**
- * @coversDefaultClass \Drupal\memcache\DrupalMemcacheConfig
+ * @coversDefaultClass \Drupal\memcache\MemcacheSettings
  * @group memcache
  */
-class DrupalMemcacheConfigTest extends UnitTestCase {
+class MemcacheSettingsTest extends UnitTestCase {
 
   /**
    * Simple settings array to test against.
@@ -27,7 +22,7 @@ class DrupalMemcacheConfigTest extends UnitTestCase {
   /**
    * The class under test.
    *
-   * @var \Drupal\memcache\DrupalMemcacheConfig
+   * @var \Drupal\memcache\MemcacheSettings
    */
   protected $settings;
 
@@ -43,7 +38,7 @@ class DrupalMemcacheConfigTest extends UnitTestCase {
       'hash_salt' => $this->randomMachineName(),
     ];
     $settings = new Settings($this->config);
-    $this->settings = new DrupalMemcacheConfig($settings);
+    $this->settings = new MemcacheSettings($settings);
   }
 
   /**

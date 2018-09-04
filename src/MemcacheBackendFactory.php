@@ -9,6 +9,7 @@ namespace Drupal\memcache;
 
 use Drupal\Core\Cache\CacheFactoryInterface;
 use Drupal\Core\Cache\CacheTagsChecksumInterface;
+use Drupal\memcache\Driver\MemcacheDriverFactory;
 
 /**
  * Class MemcacheBackendFactory.
@@ -18,7 +19,7 @@ class MemcacheBackendFactory implements CacheFactoryInterface {
   /**
    * The memcache factory object.
    *
-   * @var \Drupal\memcache\DrupalMemcacheFactory
+   * @var \Drupal\memcache\Driver\MemcacheDriverFactory
    */
   protected $memcacheFactory;
 
@@ -32,10 +33,10 @@ class MemcacheBackendFactory implements CacheFactoryInterface {
   /**
    * Constructs the DatabaseBackendFactory object.
    *
-   * @param \Drupal\memcache\DrupalMemcacheFactory $memcache_factory
+   * @param \Drupal\memcache\Driver\MemcacheDriverFactory $memcache_factory
    * @param \Drupal\Core\Cache\CacheTagsChecksumInterface $checksum_provider
    */
-  function __construct(DrupalMemcacheFactory $memcache_factory, CacheTagsChecksumInterface $checksum_provider) {
+  function __construct(MemcacheDriverFactory $memcache_factory, CacheTagsChecksumInterface $checksum_provider) {
     $this->memcacheFactory = $memcache_factory;
     $this->checksumProvider = $checksum_provider;
   }

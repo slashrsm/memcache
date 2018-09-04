@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\memcache\Driver;
+namespace Drupal\memcache\Connection;
 
 interface MemcacheConnectionInterface {
 
