@@ -83,32 +83,6 @@ The bin/cluster/server model can be described as follows:
 
 - If a bin can not be found it will map to 'default'.
 
-### Stampede Protection ###
-
-Memcache includes stampede protection for rebuilding expired and invalid cache
-items. To enable stampede protection, add the following config in settings.php:
-
-$settings['memcache']['stampede_protection'] = TRUE;
-
-To avoid lock stampedes, it is important that you enable the memcache lock
-implementation when enabling stampede protection -- enabling stampede protection
-without enabling the Memcache lock implementation can cause worse performance.
-
-Only change the following values if you're sure you know what you're doing,
-which requires reading the memcachie.inc code.
-
-The value passed to Drupal\Core\Lock\LockBackendInterface::wait(), defaults to 5:
-  $settings['memcache']['stampede_wait_time'] = 5;
-
-The maximum number of calls to Drupal\Core\Lock\LockBackendInterface::wait() due
-to stampede protection during a single request, defaults to 3:
-  $settings['memcache']['stampede_wait_limit'] = 3;
-
-When adjusting these variables, be aware that:
- - wait_time * wait_limit is designed to default to a number less than
-   standard web server timeouts (i.e. 15 seconds vs. apache's default of
-   30 seconds).
-
 ### Prefixing ###
 
 If you want to have multiple Drupal installations share memcached instances,
@@ -195,17 +169,13 @@ if ($memcache_exists || $memcached_exists) {
         'factory' => ['@memcache.backend.cache.factory', 'get'],
         'arguments' => ['container'],
       ],
-      'lock.container' => [
-        'class' => 'Drupal\memcache\Lock\MemcacheLockBackend',
-        'arguments' => ['container', '@memcache.backend.cache.container'],
-      ],
       'cache_tags_provider.container' => [
         'class' => 'Drupal\Core\Cache\DatabaseCacheTagsChecksum',
         'arguments' => ['@database'],
       ],
       'cache.container' => [
         'class' => 'Drupal\memcache\MemcacheBackend',
-        'arguments' => ['container', '@memcache.backend.cache.container', '@lock.container', '@memcache.config', '@cache_tags_provider.container'],
+        'arguments' => ['container', '@memcache.backend.cache.container', '@cache_tags_provider.container'],
       ],
     ],
   ];

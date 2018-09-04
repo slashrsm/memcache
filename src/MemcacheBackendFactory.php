@@ -7,7 +7,6 @@
 
 namespace Drupal\memcache;
 
-use Drupal\Core\Lock\LockBackendInterface;
 use Drupal\Core\Cache\CacheFactoryInterface;
 use Drupal\Core\Cache\CacheTagsChecksumInterface;
 
@@ -15,20 +14,6 @@ use Drupal\Core\Cache\CacheTagsChecksumInterface;
  * Class MemcacheBackendFactory.
  */
 class MemcacheBackendFactory implements CacheFactoryInterface {
-
-  /**
-   * The lock backend that should be used.
-   *
-   * @var \Drupal\Core\Lock\LockBackendInterface
-   */
-  protected $lock;
-
-  /**
-   * The settings object.
-   *
-   * @var \Drupal\memcache\DrupalMemcacheConfig
-   */
-  protected $settings;
 
   /**
    * The memcache factory object.
@@ -47,13 +32,10 @@ class MemcacheBackendFactory implements CacheFactoryInterface {
   /**
    * Constructs the DatabaseBackendFactory object.
    *
-   * @param \Drupal\Core\Lock\LockBackendInterface $lock
-   * @param \Drupal\memcache\DrupalMemcacheConfig $settings
    * @param \Drupal\memcache\DrupalMemcacheFactory $memcache_factory
+   * @param \Drupal\Core\Cache\CacheTagsChecksumInterface $checksum_provider
    */
-  function __construct(LockBackendInterface $lock, DrupalMemcacheConfig $settings, DrupalMemcacheFactory $memcache_factory, CacheTagsChecksumInterface $checksum_provider) {
-    $this->lock = $lock;
-    $this->settings = $settings;
+  function __construct(DrupalMemcacheFactory $memcache_factory, CacheTagsChecksumInterface $checksum_provider) {
     $this->memcacheFactory = $memcache_factory;
     $this->checksumProvider = $checksum_provider;
   }
@@ -71,8 +53,6 @@ class MemcacheBackendFactory implements CacheFactoryInterface {
     return new MemcacheBackend(
       $bin,
       $this->memcacheFactory->get($bin),
-      $this->lock,
-      $this->settings,
       $this->checksumProvider
     );
   }
