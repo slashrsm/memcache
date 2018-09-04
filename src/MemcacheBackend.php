@@ -71,14 +71,10 @@ class MemcacheBackend implements CacheBackendInterface {
    * {@inheritdoc}
    */
   public function getMultiple(&$cids, $allow_invalid = FALSE) {
-    $keys = array_map(function($cid) {
-      return $this->key($cid);
-    }, $cids);
-
-    $cache = $this->memcache->getMulti($keys);
+    $cache = $this->memcache->getMulti($cids);
     $fetched = [];
 
-    foreach ($cache as $key => $result) {
+    foreach ($cache as $result) {
       if (!$this->timeIsGreaterThanBinDeletionTime($result->created)) {
         continue;
       }
@@ -145,7 +141,7 @@ class MemcacheBackend implements CacheBackendInterface {
     $cache->checksum = $this->checksumProvider->getCurrentChecksum($tags);
 
     // Cache all items permanently. We handle expiration in our own logic.
-    return $this->memcache->set($this->key($cid), $cache);
+    return $this->memcache->set($cid, $cache);
   }
 
   /**
@@ -166,7 +162,7 @@ class MemcacheBackend implements CacheBackendInterface {
    * {@inheritdoc}
    */
   public function delete($cid) {
-    $this->memcache->delete($this->key($cid));
+    $this->memcache->delete($cid);
   }
 
   /**
@@ -174,7 +170,7 @@ class MemcacheBackend implements CacheBackendInterface {
    */
   public function deleteMultiple(array $cids) {
     foreach ($cids as $cid) {
-      $this->memcache->delete($this->key($cid));
+      $this->memcache->delete($cid);
     }
   }
 
@@ -210,7 +206,7 @@ class MemcacheBackend implements CacheBackendInterface {
     foreach ($cids as $cid) {
       if ($item = $this->get($cid)) {
         $item->expire = REQUEST_TIME - 1;
-        $this->memcache->set($this->key($cid), $item);
+        $this->memcache->set($cid, $item);
       }
     }
   }
@@ -250,17 +246,6 @@ class MemcacheBackend implements CacheBackendInterface {
   public function isEmpty() {
     // We do not know so err on the safe side? Not sure if we can know this?
     return TRUE;
-  }
-
-  /**
-   * Returns a cache key prefixed with the current bin.
-   *
-   * @param string $cid
-   *
-   * @return string
-   */
-  protected function key($cid) {
-    return sprintf('%s:%s', $this->bin, $cid);
   }
 
   /**

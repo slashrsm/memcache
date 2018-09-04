@@ -9,6 +9,9 @@ namespace Drupal\memcache;
 
 use Psr\Log\LogLevel;
 
+use Drupal\memcache\Driver\MemcacheConnection;
+use Drupal\memcache\Driver\MemcachedConnection;
+
 /**
  * Factory class for creation of Memcache objects.
  */
@@ -24,7 +27,12 @@ class DrupalMemcacheFactory {
   /**
    * @var string
    */
-  protected $extension;
+  protected $driverClass;
+
+  /**
+   * @var string
+   */
+  protected $drupalClass;
 
   /**
    * @var bool
@@ -32,7 +40,7 @@ class DrupalMemcacheFactory {
   protected $memcachePersistent;
 
   /**
-   * @var \Drupal\memcache\DrupalMemcacheInterface[]
+   * @var \Drupal\memcache\Driver\MemcacheConnectionInterface[]
    */
   protected $memcacheCache = [];
 
@@ -93,13 +101,8 @@ class DrupalMemcacheFactory {
       else {
         // Create a new Memcache object. Each cluster gets its own Memcache
         // object.
-        // @todo Can't add a custom memcache class here yet.
-        if ($this->extension == 'Memcached') {
-          $memcache = new DrupalMemcached($this->settings);
-        }
-        elseif ($this->extension == 'Memcache') {
-          $memcache = new DrupalMemcache($this->settings);
-        }
+        /** @var \Drupal\memcache\Driver\MemcacheConnectionInterface $memcache */
+        $memcache = new $this->driverClass($this->settings);
 
         // A variable to track whether we've connected to the first server.
         $init = FALSE;
@@ -136,7 +139,7 @@ class DrupalMemcacheFactory {
       }
     }
 
-    return empty($this->memcacheCache[$bin]) ? FALSE : $this->memcacheCache[$bin];
+    return empty($this->memcacheCache[$bin]) ? FALSE : new $this->drupalClass($this->settings, $this->memcacheCache[$bin]->getMemcache(), $bin);
   }
 
   /**
@@ -145,21 +148,28 @@ class DrupalMemcacheFactory {
   protected function initialize() {
     // If an extension is specified in settings.php, use that when available.
     $preferred = $this->settings->get('extension', NULL);
+
     if (isset($preferred) && class_exists($preferred)) {
-      $this->extension = $preferred;
+      $extension = $preferred;
     }
-    // If no extension is set, default to Memcache. The Memcached extension has
-    // some features that the older extension lacks but also an unfixed bug that
-    // affects cache clears.
-    // @see http://pecl.php.net/bugs/bug.php?id=16829
-    elseif (class_exists('Memcache')) {
-      $this->extension = 'Memcache';
-    }
+    // If no extension is set, default to Memcached.
     elseif (class_exists('Memcached')) {
-      $this->extension = 'Memcached';
+      $extension = \Memcached::class;
+    }
+    elseif (class_exists('Memcache')) {
+      $extension = \Memcache::class;
     }
     else {
       throw new MemcacheException('No Memcache extension found');
+    }
+
+    // @todo Make driver class configurable?
+    $this->driverClass = MemcachedConnection::class;
+    $this->drupalClass = DrupalMemcached::class;
+
+    if ($extension === \Memcache::class) {
+      $this->driverClass = MemcacheConnection::class;
+      $this->drupalClass = DrupalMemcache::class;
     }
 
     // Values from settings.php

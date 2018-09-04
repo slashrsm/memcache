@@ -7,7 +7,6 @@
 
 namespace Drupal\memcache;
 
-use Psr\Log\LogLevel;
 use Drupal\Component\Utility\Timer;
 
 /**
@@ -59,12 +58,26 @@ abstract class DrupalMemcacheBase implements DrupalMemcacheInterface {
    *
    * @param \Drupal\memcache\DrupalMemcacheConfig
    *   The memcache config object.
+   * @param \Memcached|\Memcache $connection
+   *   An existing memcache connection object.
+   * @param string $bin
+   *   The class instance specific cache bin to use.
    */
-  public function __construct(DrupalMemcacheConfig $settings) {
+  public function __construct(DrupalMemcacheConfig $settings, $memcache, $bin = NULL) {
     $this->settings = $settings;
+    $this->memcache = $memcache;
 
     $this->hashAlgorithm = $this->settings->get('key_hash_algorithm', 'sha1');
-    $this->prefix = $this->settings->get('key_prefix', '');
+
+    $prefix = $this->settings->get('key_prefix', '');
+    if ($prefix) {
+      $this->prefix = $prefix . ':';
+    }
+
+
+    if ($bin) {
+      $this->prefix .= $bin . ':';
+    }
   }
 
   /**
@@ -239,7 +252,7 @@ abstract class DrupalMemcacheBase implements DrupalMemcacheInterface {
   /**
    * Helper function to get memcache.
    */
-  public function memcache() {
+  public function getMemcache() {
     return $this->memcache;
   }
 
