@@ -1,5 +1,6 @@
 <?php
-namespace Drupal\memcache\Tests;
+
+namespace Drupal\Tests\memcache\Kernel;
 
 use Drupal\KernelTests\Core\Cache\GenericCacheBackendUnitTestBase;
 use Drupal\memcache\MemcacheBackendFactory;
@@ -9,7 +10,7 @@ use Drupal\memcache\MemcacheBackendFactory;
  *
  * @group memcache
  */
-class MemcacheBackendUnitTest extends GenericCacheBackendUnitTestBase {
+class MemcacheBackendTest extends GenericCacheBackendUnitTestBase {
 
   /**
    * Modules to enable.
