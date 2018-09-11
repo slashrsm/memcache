@@ -53,7 +53,7 @@ class MemcachedDriver extends DriverBase {
       $full_keys[$cid] = $full_key;
 
       if ($collect_stats) {
-        $multi_stats[$key] = FALSE;
+        $multi_stats[$full_key] = FALSE;
       }
     }
 
