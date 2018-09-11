@@ -55,7 +55,7 @@ class MemcacheDriverFactory {
   protected $failedConnectionCache = [];
 
   /**
-   * Constructs a DrupalMemcacheFactory object.
+   * Constructs a MemcacheDriverFactory object.
    *
    * @param \Drupal\memcache\MemcacheSettings $settings
    */
@@ -74,7 +74,7 @@ class MemcacheDriverFactory {
    * @param bool $flush
    *   Rebuild the bin/server/cache mapping.
    *
-   * @return \Drupal\memcache\DrupalMemcacheInterface
+   * @return \Drupal\memcache\DrupalMemcacheInterface | bool
    *   A Memcache object.
    */
   public function get($bin = NULL, $flush = FALSE) {

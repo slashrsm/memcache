@@ -1,6 +1,6 @@
 ## IMPORTANT NOTE ##
 
-This file contains installation instructions for the 8.x-1.x version of the
+This file contains installation instructions for the 8.x-2.x version of the
 Drupal Memcache module. Configuration differs between 8.x and 7.x versions
 of the module, so be sure to follow the 7.x instructions if you are configuring
 the 7.x-1.x version of this module!
@@ -91,7 +91,7 @@ config in settings.php:
 
   $settings['memcache']['key_prefix'] = 'something_unique';
 
-### Key Hash Algorithm
+### Key Hash Algorithm ###
 
 Note: if the length of your prefix + key + bin combine to be more than 250
 characters, they will be automatically hashed. Memcache only supports key
@@ -135,8 +135,10 @@ services:
     class: Drupal\Core\Lock\LockBackendInterface
     factory: memcache.lock.factory:get
 
-## Cache Container on bootstrap ##
+## Cache Container on bootstrap (with cache tags on database) ##
 By default Drupal starts the cache_container on the database, in order to override that you can use the following code on your settings.php file. Make sure that the $class_load->addPsr4 is poiting to the right location of memcache (on this case modules/contrib/memcache/src)
+
+In this mode, the database is still bootstrapped so that cache tag invalidation can be handled. If you want to avoid database bootstrap, see the container definition in the next section instead.
 
 $memcache_exists = class_exists('Memcache', FALSE);
 $memcached_exists = class_exists('Memcached', FALSE);
@@ -165,13 +167,66 @@ if ($memcache_exists || $memcached_exists) {
         'arguments' => ['@memcache.settings']
       ],
       'memcache.backend.cache.container' => [
-        'class' => 'Drupal\memcache\DrupalMemcacheFactory',
+        'class' => 'Drupal\memcache\DrupalMemcacheInterface',
         'factory' => ['@memcache.backend.cache.factory', 'get'],
         'arguments' => ['container'],
       ],
       'cache_tags_provider.container' => [
         'class' => 'Drupal\Core\Cache\DatabaseCacheTagsChecksum',
         'arguments' => ['@database'],
+      ],
+      'cache.container' => [
+        'class' => 'Drupal\memcache\MemcacheBackend',
+        'arguments' => ['container', '@memcache.backend.cache.container', '@cache_tags_provider.container'],
+      ],
+    ],
+  ];
+}
+
+## Cache Container on bootstrap (pure memcache) ##
+By default Drupal starts the cache_container on the database, in order to override that you can use the following code on your settings.php file. Make sure that the $class_load->addPsr4 is poiting to the right location of memcache (on this case modules/contrib/memcache/src)
+
+For this mode to work correctly, you must be using the overridden cache_tags.invalidator.checksum service.
+See example.services.yml for the corresponding configuration.
+
+$memcache_exists = class_exists('Memcache', FALSE);
+$memcached_exists = class_exists('Memcached', FALSE);
+if ($memcache_exists || $memcached_exists) {
+  $class_loader->addPsr4('Drupal\\memcache\\', 'modules/contrib/memcache/src');
+
+  // Define custom bootstrap container definition to use Memcache for cache.container.
+  $settings['bootstrap_container_definition'] = [
+    'parameters' => [],
+    'services' => [
+      # Dependencies.
+      'settings' => [
+        'class' => 'Drupal\Core\Site\Settings',
+        'factory' => 'Drupal\Core\Site\Settings::getInstance',
+      ],
+      'memcache.settings' => [
+        'class' => 'Drupal\memcache\MemcacheSettings',
+        'arguments' => ['@settings'],
+      ],
+      'memcache.factory' => [
+        'class' => 'Drupal\memcache\Driver\MemcacheDriverFactory',
+        'arguments' => ['@memcache.settings'],
+      ],
+      'memcache.backend.cache.container' => [
+        'class' => 'Drupal\memcache\DrupalMemcacheInterface',
+        'factory' => ['@memcache.factory', 'get'],
+        # Actual cache bin to use for the container cache.
+        'arguments' => ['container'],
+      ],
+      'memcache.backend.timestamp.invalidator' => [
+        'class' => 'Drupal\memcache\Invalidator\MemcacheTimestampInvalidator',
+        # Remember to use the same bin as the memcache.timestamp.bin service!
+        # Adjust tolerance factor as appropriate when not running memcache on localhost.
+        'arguments' => ['@memcache.factory', 'memcache_invalidation_timestamps', 0.001],
+      ],
+      # Define a custom cache tags invalidator for the bootstrap container.
+      'cache_tags_provider.container' => [
+        'class' => 'Drupal\memcache\Cache\TimestampCacheTagsChecksum',
+        'arguments' => ['@memcache.backend.timestamp.invalidator'],
       ],
       'cache.container' => [
         'class' => 'Drupal\memcache\MemcacheBackend',
