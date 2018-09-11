@@ -21,7 +21,7 @@ class MemcacheTimestampInvalidator extends TimestampInvalidatorBase {
    * @param string $bin Memcache bin to store the timestamps in.
    * @param float $tolerance Allowed clock skew between servers, in decimal seconds.
    */
-  public function __construct(MemcacheDriverFactory $memcache_factory, $bin = 'memcache_invalidation_timestamps', $tolerance = 0.001) {
+  public function __construct(MemcacheDriverFactory $memcache_factory, $bin, $tolerance = 0.001) {
     parent::__construct($tolerance);
     $this->memcache = $memcache_factory->get($bin);
   }

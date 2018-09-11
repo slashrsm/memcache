@@ -162,13 +162,18 @@ if ($memcache_exists || $memcached_exists) {
         'class' => 'Drupal\memcache\MemcacheSettings',
         'arguments' => ['@settings'],
       ],
-      'memcache.backend.cache.factory' => [
+      'memcache.factory' => [
         'class' => 'Drupal\memcache\Driver\MemcacheDriverFactory',
-        'arguments' => ['@memcache.settings']
+        'arguments' => ['@memcache.settings'],
+      ],
+      'memcache.timestamp.invalidator.bin' => [
+        'class' => 'Drupal\memcache\Invalidator\MemcacheTimestampInvalidator',
+        # Adjust tolerance factor as appropriate when not running memcache on localhost.
+        'arguments' => ['@memcache.factory', 'memcache_bin_timestamps', 0.001],
       ],
       'memcache.backend.cache.container' => [
         'class' => 'Drupal\memcache\DrupalMemcacheInterface',
-        'factory' => ['@memcache.backend.cache.factory', 'get'],
+        'factory' => ['@memcache.factory', 'get'],
         'arguments' => ['container'],
       ],
       'cache_tags_provider.container' => [
@@ -177,7 +182,7 @@ if ($memcache_exists || $memcached_exists) {
       ],
       'cache.container' => [
         'class' => 'Drupal\memcache\MemcacheBackend',
-        'arguments' => ['container', '@memcache.backend.cache.container', '@cache_tags_provider.container'],
+        'arguments' => ['container', '@memcache.backend.cache.container', '@cache_tags_provider.container', '@memcache.timestamp.invalidator.bin'],
       ],
     ],
   ];
@@ -211,26 +216,31 @@ if ($memcache_exists || $memcached_exists) {
         'class' => 'Drupal\memcache\Driver\MemcacheDriverFactory',
         'arguments' => ['@memcache.settings'],
       ],
+      'memcache.timestamp.invalidator.bin' => [
+        'class' => 'Drupal\memcache\Invalidator\MemcacheTimestampInvalidator',
+        # Adjust tolerance factor as appropriate when not running memcache on localhost.
+        'arguments' => ['@memcache.factory', 'memcache_bin_timestamps', 0.001],
+      ],
+      'memcache.timestamp.invalidator.tag' => [
+        'class' => 'Drupal\memcache\Invalidator\MemcacheTimestampInvalidator',
+        # Remember to update your main service definition in sync with this!
+        # Adjust tolerance factor as appropriate when not running memcache on localhost.
+        'arguments' => ['@memcache.factory', 'memcache_tag_timestamps', 0.001],
+      ],
       'memcache.backend.cache.container' => [
         'class' => 'Drupal\memcache\DrupalMemcacheInterface',
         'factory' => ['@memcache.factory', 'get'],
         # Actual cache bin to use for the container cache.
         'arguments' => ['container'],
       ],
-      'memcache.backend.timestamp.invalidator' => [
-        'class' => 'Drupal\memcache\Invalidator\MemcacheTimestampInvalidator',
-        # Remember to use the same bin as the memcache.timestamp.bin service!
-        # Adjust tolerance factor as appropriate when not running memcache on localhost.
-        'arguments' => ['@memcache.factory', 'memcache_invalidation_timestamps', 0.001],
-      ],
       # Define a custom cache tags invalidator for the bootstrap container.
       'cache_tags_provider.container' => [
         'class' => 'Drupal\memcache\Cache\TimestampCacheTagsChecksum',
-        'arguments' => ['@memcache.backend.timestamp.invalidator'],
+        'arguments' => ['@memcache.timestamp.invalidator.tag'],
       ],
       'cache.container' => [
         'class' => 'Drupal\memcache\MemcacheBackend',
-        'arguments' => ['container', '@memcache.backend.cache.container', '@cache_tags_provider.container'],
+        'arguments' => ['container', '@memcache.backend.cache.container', '@cache_tags_provider.container', '@memcache.timestamp.invalidator.bin'],
       ],
     ],
   ];
