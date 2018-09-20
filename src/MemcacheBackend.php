@@ -146,7 +146,7 @@ class MemcacheBackend implements CacheBackendInterface {
     // Create new cache object.
     $cache = new \stdClass();
     $cache->cid = $cid;
-    $cache->data = is_object($data) ? clone $data : $data;
+    $cache->data = $data;
     $cache->created = round(microtime(TRUE), 3);
     $cache->expire = $expire;
     $cache->tags = $tags;
