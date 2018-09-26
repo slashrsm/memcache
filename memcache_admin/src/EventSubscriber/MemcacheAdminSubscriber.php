@@ -16,15 +16,15 @@ class MemcacheAdminSubscriber implements EventSubscriberInterface {
   /**
    * {@inheritdoc}
    */
-  static function getSubscribedEvents() {
-    $events[KernelEvents::RESPONSE][] = ['display_statistics'];
+  public static function getSubscribedEvents() {
+    $events[KernelEvents::RESPONSE][] = ['displayStatistics'];
     return $events;
   }
 
   /**
    * Display statistics on page.
    */
-  public function display_statistics(FilterResponseEvent $event) {
+  public function displayStatistics(FilterResponseEvent $event) {
     $user = \Drupal::currentUser();
 
     // Removed exclusion criteria, untested. Will likely need to add some of
@@ -69,8 +69,8 @@ class MemcacheAdminSubscriber implements EventSubscriberInterface {
               foreach ($memcache_stats['ops'] as $row => $stats) {
                 $memcache_stats['ops'][$row][0] = new HtmlEscapedText($stats[0]);
                 $memcache_stats['ops'][$row][1] = number_format($stats[1], 2);
-                $hits                           = number_format($this->stats_percent($stats[2], $stats[3]), 1);
-                $misses                         = number_format($this->stats_percent($stats[3], $stats[2]), 1);
+                $hits                           = number_format($this->statsPercent($stats[2], $stats[3]), 1);
+                $misses                         = number_format($this->statsPercent($stats[3], $stats[2]), 1);
                 $memcache_stats['ops'][$row][2] = number_format($stats[2]) . " ($hits%)";
                 $memcache_stats['ops'][$row][3] = number_format($stats[3]) . " ($misses%)";
               }
@@ -121,7 +121,7 @@ class MemcacheAdminSubscriber implements EventSubscriberInterface {
   /**
    * Helper function. Calculate a percentage.
    */
-  private function stats_percent($a, $b) {
+  private function statsPercent($a, $b) {
     if ($a == 0) {
       return 0;
     }

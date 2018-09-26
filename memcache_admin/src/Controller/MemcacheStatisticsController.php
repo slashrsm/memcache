@@ -21,12 +21,12 @@ class MemcacheStatisticsController extends ControllerBase {
    * @return string
    *   The page output.
    */
-  public function stats_table($bin = 'default') {
-    $output  = [];
+  public function statsTable($bin = 'default') {
+    $output = [];
     $servers = [];
 
     // Get the statistics.
-    $bin      = $this->bin_mapping($bin);
+    $bin      = $this->binMapping($bin);
     $memcache = \Drupal::service('memcache.factory')->get($bin, TRUE);
     $stats    = $memcache->stats($bin, 'default', TRUE);
 
@@ -87,13 +87,13 @@ class MemcacheStatisticsController extends ControllerBase {
             $data['server_overview'][$server]    = t('v@version running @uptime', ['@version' => $statistics['version'], '@uptime' => \Drupal::service('date.formatter')->formatInterval($statistics['uptime'])]);
             $data['server_pecl'][$server]        = t('n/a');
             $data['server_time'][$server]        = format_date($statistics['time']);
-            $data['server_connections'][$server] = $this->stats_connections($statistics);
-            $data['cache_sets'][$server]         = $this->stats_sets($statistics);
-            $data['cache_gets'][$server]         = $this->stats_gets($statistics);
-            $data['cache_counters'][$server]     = $this->stats_counters($statistics);
-            $data['cache_transfer'][$server]     = $this->stats_transfer($statistics);
-            $data['cache_average'][$server]      = $this->stats_average($statistics);
-            $data['memory_available'][$server]   = $this->stats_memory($statistics);
+            $data['server_connections'][$server] = $this->statsConnections($statistics);
+            $data['cache_sets'][$server]         = $this->statsSets($statistics);
+            $data['cache_gets'][$server]         = $this->statsGets($statistics);
+            $data['cache_counters'][$server]     = $this->statsCounters($statistics);
+            $data['cache_transfer'][$server]     = $this->statsTransfer($statistics);
+            $data['cache_average'][$server]      = $this->statsAverage($statistics);
+            $data['memory_available'][$server]   = $this->statsMemory($statistics);
             $data['memory_evictions'][$server]   = number_format($statistics['evictions']);
           }
         }
@@ -138,8 +138,8 @@ class MemcacheStatisticsController extends ControllerBase {
         $report['uptime']['extension']['servers'] = $data['server_pecl'];
         $report['uptime']['extension']['total']   = $version;
         $report['uptime']['time']['total']        = t('n/a');
-        $report['uptime']['connections']['total'] = $this->stats_connections($aggregate);
-        $report['memory']['memory']['total']      = $this->stats_memory($aggregate);
+        $report['uptime']['connections']['total'] = $this->statsConnections($aggregate);
+        $report['memory']['memory']['total']      = $this->statsMemory($aggregate);
         $report['memory']['evictions']['total']   = number_format($aggregate['evictions']);
       }
 
@@ -159,12 +159,12 @@ class MemcacheStatisticsController extends ControllerBase {
         ];
 
         if (count($servers) > 1) {
-          $func = "stats_{$type}";
-          $report['stats'][$type]['total'] = $this->$func($aggregate);
+          $func = 'stats' . ucfirst($type);
+          $report['stats'][$type]['total'] = $this->{$func}($aggregate);
         }
       }
 
-      $output = $this->stats_tables_output($bin, $servers, $report);
+      $output = $this->statsTablesOutput($bin, $servers, $report);
     }
 
     return $output;
@@ -183,9 +183,9 @@ class MemcacheStatisticsController extends ControllerBase {
    * @return string
    *   The page output.
    */
-  public function stats_table_raw($cluster, $server, $type = 'default') {
-    $cluster = $this->bin_mapping($cluster);
-    $server  = str_replace('!', '/', $server);
+  public function statsTableRaw($cluster, $server, $type = 'default') {
+    $cluster = $this->binMapping($cluster);
+    $server = str_replace('!', '/', $server);
 
     // @todo - pull slab stats for Memcache
     // $slab = (int) arg(7);
@@ -211,13 +211,13 @@ class MemcacheStatisticsController extends ControllerBase {
     // }
     // drupal_set_breadcrumb($breadcrumbs);
     if (isset($stats[$cluster][$server]) && is_array($stats[$cluster][$server]) && count($stats[$cluster][$server])) {
-      $output = $this->stats_tables_raw_output($cluster, $server, $stats[$cluster][$server], $type);
+      $output = $this->statsTablesRawOutput($cluster, $server, $stats[$cluster][$server], $type);
     }
     elseif ($type == 'slabs' && is_array($stats[$cluster]) && count($stats[$cluster])) {
-      $output = $this->stats_tables_raw_output($cluster, $server, $stats[$cluster], $type);
+      $output = $this->statsTablesRawOutput($cluster, $server, $stats[$cluster], $type);
     }
     else {
-      $output = $this->stats_tables_raw_output($cluster, $server, [], $type);
+      $output = $this->statsTablesRawOutput($cluster, $server, [], $type);
       drupal_set_message(t('No @type statistics for this bin.', ['@type' => $type]));
     }
 
@@ -227,23 +227,23 @@ class MemcacheStatisticsController extends ControllerBase {
   /**
    * Helper function, reverse map the memcache_bins variable.
    */
-  private function bin_mapping($bin = 'cache') {
+  private function binMapping($bin = 'cache') {
     $memcache      = \Drupal::service('memcache.factory')->get(NULL, TRUE);
-    $memcache_bins = $memcache->get_bins();
+    $memcache_bins = $memcache->getBins();
 
     $bins = array_flip($memcache_bins);
     if (isset($bins[$bin])) {
       return $bins[$bin];
     }
     else {
-      return $this->default_bin($bin);
+      return $this->defaultBin($bin);
     }
   }
 
   /**
    * Helper function. Returns the bin name.
    */
-  private function default_bin($bin) {
+  private function defaultBin($bin) {
     if ($bin == 'default') {
       return 'cache';
     }
@@ -254,7 +254,7 @@ class MemcacheStatisticsController extends ControllerBase {
   /**
    * Statistics report: format total and open connections.
    */
-  private function stats_connections($stats) {
+  private function statsConnections($stats) {
     return $this->t(
       '@current open of @total total',
       [
@@ -267,7 +267,7 @@ class MemcacheStatisticsController extends ControllerBase {
   /**
    * Statistics report: calculate # of set cmds and total cmds.
    */
-  private function stats_sets($stats) {
+  private function statsSets($stats) {
     if (($stats['cmd_set'] + $stats['cmd_get']) == 0) {
       $sets = 0;
     }
@@ -294,7 +294,7 @@ class MemcacheStatisticsController extends ControllerBase {
   /**
    * Statistics report: calculate # of get cmds, broken down by hits and misses.
    */
-  private function stats_gets($stats) {
+  private function statsGets($stats) {
     if (($stats['cmd_set'] + $stats['cmd_get']) == 0) {
       $gets = 0;
     }
@@ -324,7 +324,7 @@ class MemcacheStatisticsController extends ControllerBase {
   /**
    * Statistics report: calculate # of increments and decrements.
    */
-  private function stats_counters($stats) {
+  private function statsCounters($stats) {
     if (!is_array($stats)) {
       $stats = [];
     }
@@ -348,7 +348,7 @@ class MemcacheStatisticsController extends ControllerBase {
   /**
    * Statistics report: calculate bytes transferred.
    */
-  private function stats_transfer($stats) {
+  private function statsTransfer($stats) {
     if ($stats['bytes_written'] == 0) {
       $written = 0;
     }
@@ -368,7 +368,7 @@ class MemcacheStatisticsController extends ControllerBase {
   /**
    * Statistics report: calculate per-connection averages.
    */
-  private function stats_average($stats) {
+  private function statsAverage($stats) {
     if ($stats['total_connections'] == 0) {
       $get   = 0;
       $set   = 0;
@@ -395,7 +395,7 @@ class MemcacheStatisticsController extends ControllerBase {
   /**
    * Statistics report: calculate available memory.
    */
-  private function stats_memory($stats) {
+  private function statsMemory($stats) {
     if ($stats['limit_maxbytes'] == 0) {
       $percent = 0;
     }
@@ -415,9 +415,9 @@ class MemcacheStatisticsController extends ControllerBase {
   /**
    * Generates render array for output.
    */
-  private function stats_tables_output($bin, $servers, $stats) {
+  private function statsTablesOutput($bin, $servers, $stats) {
     $memcache      = \Drupal::service('memcache.factory')->get(NULL, TRUE);
-    $memcache_bins = $memcache->get_bins();
+    $memcache_bins = $memcache->getBins();
 
     $links = [];
     foreach ($servers as $server) {
@@ -462,18 +462,18 @@ class MemcacheStatisticsController extends ControllerBase {
   /**
    * Generates render array for output.
    */
-  private function stats_tables_raw_output($cluster, $server, $stats, $type) {
+  private function statsTablesRawOutput($cluster, $server, $stats, $type) {
     $user          = \Drupal::currentUser();
     $current_type  = isset($type) ? $type : 'default';
     $memcache      = \Drupal::service('memcache.factory')->get(NULL, TRUE);
-    $memcache_bins = $memcache->get_bins();
+    $memcache_bins = $memcache->getBins();
     $bin           = isset($memcache_bins[$cluster]) ? $memcache_bins[$cluster] : 'default';
 
     // Provide navigation for the various memcache stats types.
     $links = [];
-    if (count($memcache->stats_types())) {
-      foreach ($memcache->stats_types() as $type) {
-        $link = Link::fromTextandUrl($this->t($type), Url::fromUri('base:/admin/reports/memcache/' . $bin . '/' . str_replace('/', '!', $server) . '/' . ($type == 'default' ? '' : $type)))->toString();
+    if (count($memcache->statsTypes())) {
+      foreach ($memcache->statsTypes() as $type) {
+        $link = Link::fromTextandUrl($type, Url::fromUri('base:/admin/reports/memcache/' . $bin . '/' . str_replace('/', '!', $server) . '/' . ($type == 'default' ? '' : $type)))->toString();
         if ($current_type == $type) {
           $links[] = '<strong>' . $link . '</strong>';
         }
@@ -502,7 +502,7 @@ class MemcacheStatisticsController extends ControllerBase {
       // Add navigation for getting a cachedump of individual slabs.
       // @todo - verify if this works correctly with Memcache
       if (($current_type == 'slabs' || $current_type == 'items') && is_int($key) && $user->hasPermission('access slab cachedump')) {
-        $key = Link::fromTextandUrl($this->t($type), Url::fromUri('base:/admin/reports/memcache/' . $bin . '/' . str_replace('/', '!', $server) . '/slabs/cachedump/' . $key))->toString();
+        $key = Link::fromTextandUrl($type, Url::fromUri('base:/admin/reports/memcache/' . $bin . '/' . str_replace('/', '!', $server) . '/slabs/cachedump/' . $key))->toString();
       }
       if (is_array($value)) {
         $rs = [];

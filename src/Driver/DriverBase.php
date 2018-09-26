@@ -80,13 +80,13 @@ abstract class DriverBase implements DrupalMemcacheInterface {
    * {@inheritdoc}
    */
   public function get($key) {
-    $collect_stats = $this->stats_init();
+    $collect_stats = $this->statsInit();
 
     $full_key = $this->key($key);
     $result   = $this->memcache->get($full_key);
 
     if ($collect_stats) {
-      $this->stats_write('get', 'cache', [$full_key => (bool)$result]);
+      $this->statsWrite('get', 'cache', [$full_key => (bool) $result]);
     }
 
     return $result;
@@ -114,13 +114,13 @@ abstract class DriverBase implements DrupalMemcacheInterface {
    * {@inheritdoc}
    */
   public function delete($key) {
-    $collect_stats = $this->stats_init();
+    $collect_stats = $this->statsInit();
 
     $full_key = $this->key($key);
     $result = $this->memcache->delete($full_key, 0);
 
     if ($collect_stats) {
-      $this->stats_write('delete', 'cache', [$full_key => $result]);
+      $this->statsWrite('delete', 'cache', [$full_key => $result]);
     }
 
     return $result;
@@ -130,12 +130,12 @@ abstract class DriverBase implements DrupalMemcacheInterface {
    * {@inheritdoc}
    */
   public function flush() {
-    $collect_stats = $this->stats_init();
+    $collect_stats = $this->statsInit();
 
     $result = $this->memcache->flush();
 
     if ($collect_stats) {
-      $this->stats_write('flush', 'cache', ['' => $result]);
+      $this->statsWrite('flush', 'cache', ['' => $result]);
     }
   }
 
@@ -156,7 +156,7 @@ abstract class DriverBase implements DrupalMemcacheInterface {
     $slab = (int) $stats_type;
     $stats = [];
 
-    foreach ($this->get_bins() as $bin => $target) {
+    foreach ($this->getBins() as $bin => $target) {
       if ($stats_bin == $bin) {
         if (isset($this->memcache)) {
           if ($this->memcache instanceof \Memcached) {
@@ -224,7 +224,7 @@ abstract class DriverBase implements DrupalMemcacheInterface {
   /**
    * Helper function to get the bins.
    */
-  public function get_bins() {
+  public function getBins() {
     $memcache_bins = \Drupal::configFactory()->getEditable('memcache.settings')->get('memcache_bins');
     if (!isset($memcache_bins)) {
       $memcache_bins = ['cache' => 'default'];
@@ -236,7 +236,7 @@ abstract class DriverBase implements DrupalMemcacheInterface {
   /**
    * Helper function to get the servers.
    */
-  public function get_servers() {
+  public function getServers() {
     $memcache_servers = \Drupal::configFactory()->getEditable('memcache.settings')->get('memcache_servers');
     if (!isset($memcache_servers)) {
       $memcache_servers = ['127.0.0.1:11211' => 'default'];
@@ -255,14 +255,14 @@ abstract class DriverBase implements DrupalMemcacheInterface {
   /**
    * Helper function to get request stats.
    */
-  public function request_stats() {
+  public function requestStats() {
     return self::$stats;
   }
 
   /**
    * Returns an array of available statistics types.
    */
-  public function stats_types() {
+  public function statsTypes() {
     if ($this->memcache instanceof \Memcache) {
       // TODO: Determine which versions of the PECL memcache extension have
       // these other stats types: 'malloc', 'maps', optionally detect this
@@ -279,7 +279,7 @@ abstract class DriverBase implements DrupalMemcacheInterface {
   /**
    * Helper function to initialize the stats for a memcache operation.
    */
-  protected function stats_init() {
+  protected function statsInit() {
     static $drupal_static_fast;
 
     if (!isset($drupal_static_fast)) {
@@ -325,7 +325,7 @@ abstract class DriverBase implements DrupalMemcacheInterface {
    *   Keyed array in the form (string)$cid => (bool)$success. The keys the
    *   action is being performed on, and whether or not it was a success.
    */
-  protected function stats_write($action, $bin, $keys) {
+  protected function statsWrite($action, $bin, array $keys) {
 
     // Determine how much time elapsed to execute this action.
     $time = Timer::read('dmemcache');
