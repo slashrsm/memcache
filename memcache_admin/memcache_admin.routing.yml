@@ -37,3 +37,11 @@ memcache_admin.reports_type:
     _title: Memcache Statistics - Type
   requirements:
     _permission: access memcache statistics
+
+memcache_admin.reports_slab_dump:
+  path: '/admin/reports/memcache/{cluster}/{server}/{type}/cachedump/{slab}'
+  defaults:
+    _controller: Drupal\memcache_admin\Controller\MemcacheStatisticsController::statsTableRaw
+    _title: Memcache Statistics - Slab Cache
+  requirements:
+    _permission: access slab cachedump

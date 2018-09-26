@@ -2,6 +2,8 @@
 
 namespace Drupal\memcache_admin\EventSubscriber;
 
+use Drupal\Core\Render\Element\HtmlTag;
+use Drupal\Core\Render\Markup;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\FilterResponseEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
@@ -64,7 +66,7 @@ class MemcacheAdminSubscriber implements EventSubscriberInterface {
             $output = '';
 
             $memcache       = \Drupal::service('memcache.factory')->get(NULL, TRUE);
-            $memcache_stats = $memcache->request_stats();
+            $memcache_stats = $memcache->requestStats();
             if (!empty($memcache_stats['ops'])) {
               foreach ($memcache_stats['ops'] as $row => $stats) {
                 $memcache_stats['ops'][$row][0] = new HtmlEscapedText($stats[0]);
@@ -89,14 +91,8 @@ class MemcacheAdminSubscriber implements EventSubscriberInterface {
             }
 
             if (!empty($memcache_stats['all'])) {
-              foreach ($memcache_stats['all'] as $row => $stats) {
-                $memcache_stats['all'][$row][1] = new HtmlEscapedText($stats[1]);
-                $memcache_stats['all'][$row][2] = new HtmlEscapedText($stats[2]);
-                $memcache_stats['all'][$row][3] = new HtmlEscapedText($stats[3]);
-              }
-
               $build = [
-                '#theme'  => 'table',
+                '#type'  => 'table',
                 '#header' => [
                   t('ms'),
                   t('operation'),
@@ -104,8 +100,19 @@ class MemcacheAdminSubscriber implements EventSubscriberInterface {
                   t('key'),
                   t('status'),
                 ],
-                '#rows'   => $memcache_stats['all'],
               ];
+              foreach ($memcache_stats['all'] as $row => $stats) {
+                $build[$row]['ms'] = ['#plain_text' => $stats[0]];
+                $build[$row]['operation'] = ['#plain_text' => $stats[1]];
+                $build[$row]['bin'] = ['#plain_text' => $stats[2]];
+                $build[$row]['key'] = [
+                  '#separator' => ' | ',
+                ];
+                foreach (explode('\n', $stats[3]) as $akey) {
+                  $build[$row]['key']['child'][]['#plain_text'] = $akey;
+                }
+                $build[$row]['status'] = ['#plain_text' => $stats[4]];
+              }
               $output .= \Drupal::service('renderer')->renderRoot($build);
             }
 
