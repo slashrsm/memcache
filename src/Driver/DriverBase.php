@@ -21,13 +21,13 @@ abstract class DriverBase implements DrupalMemcacheInterface {
   /**
    * The memcache object.
    *
-   * @var mixed
+   * @var \Memcache|\Memcached
    *   E.g. \Memcache|\Memcached
    */
   protected $memcache;
 
   /**
-   * The hash algorithm to pass to hash(). Defaults to 'sha1'
+   * The hash algorithm to pass to hash(). Defaults to 'sha1'.
    *
    * @var string
    */
@@ -51,11 +51,11 @@ abstract class DriverBase implements DrupalMemcacheInterface {
   ];
 
   /**
-   * Constructs a DrupalMemcacheBase object.
+   * Constructs a DriverBase object.
    *
-   * @param \Drupal\memcache\MemcacheSettings
+   * @param \Drupal\memcache\MemcacheSettings $settings
    *   The memcache config object.
-   * @param \Memcached|\Memcache $connection
+   * @param \Memcached|\Memcache $memcache
    *   An existing memcache connection object.
    * @param string $bin
    *   The class instance specific cache bin to use.
@@ -70,7 +70,6 @@ abstract class DriverBase implements DrupalMemcacheInterface {
     if ($prefix) {
       $this->prefix = $prefix . ':';
     }
-
 
     if ($bin) {
       $this->prefix .= $bin . ':';
@@ -154,7 +153,7 @@ abstract class DriverBase implements DrupalMemcacheInterface {
 
     // The stats_type can be over-loaded with an integer slab id, if doing a
     // cachedump.  We know we're doing a cachedump if $slab is non-zero.
-    $slab  = (int) $stats_type;
+    $slab = (int) $stats_type;
     $stats = [];
 
     foreach ($this->get_bins() as $bin => $target) {
@@ -290,9 +289,10 @@ abstract class DriverBase implements DrupalMemcacheInterface {
     $user_access_checked = &$drupal_static_fast['user_access_checked'];
 
     // Confirm DRUPAL_BOOTSTRAP_VARIABLES has been reached. We don't use
-    // drupal_get_bootstrap_phase() as it's buggy. We can use variable_get() here
-    // because _drupal_bootstrap_variables() includes module.inc immediately
-    // after it calls variable_initialize().
+    // drupal_get_bootstrap_phase() as it's buggy. We can use variable_get()
+    // here because _drupal_bootstrap_variables() includes module.inc
+    // immediately after it calls variable_initialize().
+    // @codingStandardsIgnoreStart
     // if (!isset($variable_checked) && function_exists('module_list')) {
     //   $variable_checked = variable_get('show_memcache_statistics', FALSE);
     // }
@@ -302,7 +302,9 @@ abstract class DriverBase implements DrupalMemcacheInterface {
     //   // that the user has access to view them.
     //   $user_access_checked = user_access('access memcache statistics');
     // }
-    // Return whether or not statistics are enabled and the user can access them.
+    // @codingStandardsIgnoreEnd
+    // Return whether or not statistics are enabled and the user can access
+    // them.
     if ((!isset($variable_checked) || $variable_checked) && (!isset($user_access_checked) || $user_access_checked)) {
       Timer::start('dmemcache');
       return TRUE;
@@ -349,4 +351,5 @@ abstract class DriverBase implements DrupalMemcacheInterface {
       }
     }
   }
+
 }

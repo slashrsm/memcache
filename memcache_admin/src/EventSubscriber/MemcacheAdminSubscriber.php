@@ -1,9 +1,5 @@
 <?php
 
-/**
- * Memcache Admin event subscriber.
- */
-
 namespace Drupal\memcache_admin\EventSubscriber;
 
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -31,29 +27,33 @@ class MemcacheAdminSubscriber implements EventSubscriberInterface {
   public function display_statistics(FilterResponseEvent $event) {
     $user = \Drupal::currentUser();
 
-    // Removed exclusion critiria, untested. Will likely need to add some of
+    // Removed exclusion criteria, untested. Will likely need to add some of
     // these back in.
+    // @codingStandardsIgnoreStart
     //   strstr($_SERVER['PHP_SELF'], '/update.php')
     //   substr($_GET['q'], 0, strlen('batch')) == 'batch'
     //   strstr($_GET['q'], 'autocomplete')
     //   substr($_GET['q'], 0, strlen('system/files')) == 'system/files'
     //   in_array($_GET['q'], ['upload/js', 'admin/content/node-settings/rebuild'])
+    // @codingStandardsIgnoreEnd
     // @todo validate these checks
     if ($user->id() == 0) {
-      // suppress for the above criteria.
+      // Suppress for the above criteria.
     }
     else {
       $response = $event->getResponse();
 
-      // Don't call theme() during shutdown if the registry has been rebuilt (such
-      // as when enabling/disabling modules on admin/build/modules) as things break.
+      // Don't call theme() during shutdown if the registry has been rebuilt
+      // (such as when enabling/disabling modules on admin/build/modules) as
+      // things break.
       // Instead, simply exit without displaying admin statistics for this page
       // load.  See http://drupal.org/node/616282 for discussion.
       // @todo make sure this is not still a requirement.
+      // @codingStandardsIgnoreStart
       // if (!function_exists('theme_get_registry') || !theme_get_registry()) {
       //   return;
-      // }
-
+      // }.
+      // @codingStandardsIgnoreEnd
       // Try not to break non-HTML pages.
       if ($response instanceof HTMLResponse) {
 
@@ -132,4 +132,5 @@ class MemcacheAdminSubscriber implements EventSubscriberInterface {
       return $a / ($a + $b) * 100;
     }
   }
+
 }

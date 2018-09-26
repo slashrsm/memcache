@@ -59,7 +59,8 @@ class MemcachedDriver extends DriverBase {
 
     if (PHP_MAJOR_VERSION === 7) {
       $results = $this->memcache->getMulti($full_keys, \Memcached::GET_PRESERVE_ORDER);
-    } else {
+    }
+    else {
       $cas_tokens = NULL;
       $results = $this->memcache->getMulti($full_keys, $cas_tokens, \Memcached::GET_PRESERVE_ORDER);
     }
