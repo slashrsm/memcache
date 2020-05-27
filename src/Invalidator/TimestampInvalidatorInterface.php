@@ -58,4 +58,17 @@ interface TimestampInvalidatorInterface {
    */
   public function getCurrentTimestamp($offset = 0.0);
 
+  /**
+   * Get the current request time
+   *
+   * Memcache operates within the bootstrap container, so only the REQUEST_TIME
+   * global is (possibly) available. The request object and time service aren't.
+   * Return the global or time() if need be.
+   *
+   * @see https://www.drupal.org/node/2999614 for more info.
+   *
+   * @return int
+   *   A Unix timestamp.
+   */
+  public function getRequestTime();
 }

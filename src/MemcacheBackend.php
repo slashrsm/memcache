@@ -119,7 +119,7 @@ class MemcacheBackend implements CacheBackendInterface {
     $cache->valid = TRUE;
 
     // Items that have expired are invalid.
-    if ($cache->expire != CacheBackendInterface::CACHE_PERMANENT && $cache->expire <= REQUEST_TIME) {
+    if ($cache->expire != CacheBackendInterface::CACHE_PERMANENT && $cache->expire <= $this->timestampInvalidator->getRequestTime()) {
       $cache->valid = FALSE;
     }
 
@@ -216,7 +216,7 @@ class MemcacheBackend implements CacheBackendInterface {
   public function invalidateMultiple(array $cids) {
     foreach ($cids as $cid) {
       if ($item = $this->get($cid)) {
-        $item->expire = REQUEST_TIME - 1;
+        $item->expire = $this->timestampInvalidator->getRequestTime() - 1;
         $this->memcache->set($cid, $item);
       }
     }
