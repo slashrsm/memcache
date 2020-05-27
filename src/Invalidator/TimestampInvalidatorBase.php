@@ -62,15 +62,6 @@ abstract class TimestampInvalidatorBase implements TimestampInvalidatorInterface
   /**
    * {@inheritdoc}
    */
-  public function getRequestTime() {
-    // If this is called prior to the request being pushed to the stack fallback
-    // to built-in globals (if available) or the system time.
-    return $_SERVER['REQUEST_TIME'] ?? time();
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   abstract public function invalidateTimestamp($tag);
 
   /**
