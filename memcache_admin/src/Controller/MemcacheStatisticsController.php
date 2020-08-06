@@ -491,7 +491,7 @@ class MemcacheStatisticsController extends ControllerBase {
     }
     $build = [
       'links' => [
-        '#markup' => !empty($links) ? implode($links, ' | ') : '',
+        '#markup' => !empty($links) ? implode(' | ', $links) : '',
       ],
     ];
 
