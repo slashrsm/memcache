@@ -36,31 +36,13 @@ class MemcacheStatisticsController extends ControllerBase {
     $stats    = $memcache->stats($bin, 'default', TRUE);
 
     if (empty($stats[$bin])) {
-
-      // Break this out to make Drupal Messenger service easier to read.
-      $additional_message = $this->t(
-        '@enable the memcache module',
-        [
-          '@enable' => Link::fromTextAndUrl(t('enable'), Url::fromUri('base:/admin/modules', ['fragment' => 'edit-modules-performance-and-scalability'])),
-        ]
-      );
-      if (\Drupal::moduleHandler()->moduleExists('memcache')) {
-        $additional_message = $this->t(
-          'visit the Drupal admin @status page',
-          [
-            '@status' => Link::fromTextAndUrl(t('status report'), Url::fromUri('base:/admin/reports/status')),
-          ]
-        );
-      }
-
       // Failed to load statistics. Provide a useful error about where to get
       // more information and help.
       $this->messenger()->addError(
         t(
-          'There may be a problem with your Memcache configuration. Please review @readme and :more for more information.',
+          'There may be a problem with your Memcache configuration. Please review @readme for more information.',
           [
             '@readme' => 'README.txt',
-            ':more'   => $additional_message,
           ]
         )
       );
