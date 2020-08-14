@@ -3,6 +3,7 @@
 namespace Drupal\memcache\Cache;
 
 use Drupal\Core\Cache\CacheTagsChecksumInterface;
+use Drupal\Core\Cache\CacheTagsChecksumTrait;
 use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
 use Drupal\memcache\Invalidator\TimestampInvalidatorInterface;
 
@@ -11,28 +12,16 @@ use Drupal\memcache\Invalidator\TimestampInvalidatorInterface;
  */
 class TimestampCacheTagsChecksum implements CacheTagsChecksumInterface, CacheTagsInvalidatorInterface {
 
+  use CacheTagsChecksumTrait {
+    getCurrentChecksum as traitGetCurrentChecksum;
+  }
+
   /**
    * The timestamp invalidator object.
    *
    * @var \Drupal\memcache\Invalidator\TimestampInvalidatorInterface
    */
   protected $invalidator;
-
-  /**
-   * Contains already loaded cache invalidations from the backend.
-   *
-   * @var array
-   */
-  protected $tagCache = [];
-
-  /**
-   * A list of tags that have already been invalidated in this request.
-   *
-   * Used to prevent the invalidation of the same cache tag multiple times.
-   *
-   * @var array
-   */
-  protected $invalidatedTags = [];
 
   /**
    * Constructs a TimestampCacheTagsChecksum object.
@@ -47,14 +36,8 @@ class TimestampCacheTagsChecksum implements CacheTagsChecksumInterface, CacheTag
   /**
    * {@inheritdoc}
    */
-  public function invalidateTags(array $tags) {
+  public function doInvalidateTags(array $tags) {
     foreach ($tags as $tag) {
-      // @todo Revisit this behavior and determine a better way to handle.
-      // Only invalidate tags once per request unless they are written again.
-      if (isset($this->invalidatedTags[$tag])) {
-        continue;
-      }
-      $this->invalidatedTags[$tag] = TRUE;
       $this->tagCache[$tag] = $this->invalidator->invalidateTimestamp($tag);
     }
   }
@@ -63,19 +46,7 @@ class TimestampCacheTagsChecksum implements CacheTagsChecksumInterface, CacheTag
    * {@inheritdoc}
    */
   public function getCurrentChecksum(array $tags) {
-    // @todo Revisit the invalidatedTags hack.
-    // Remove tags that were already invalidated during this request from the
-    // static caches so that another invalidation can occur later in the same
-    // request. Without that, written cache items would not be invalidated
-    // correctly.
-    foreach ($tags as $tag) {
-      unset($this->invalidatedTags[$tag]);
-    }
-    // Taking the minimum of the current timestamp and the checksum is used to
-    // ensure that items that are not valid yet are identified properly as not
-    // valid. The checksum will change continuously until the item is valid,
-    // at which point the checksum will match and freeze at that value.
-    return min($this->invalidator->getCurrentTimestamp(), $this->calculateChecksum($tags));
+    return min($this->invalidator->getCurrentTimestamp(), $this->traitGetCurrentChecksum($tags));
   }
 
   /**
@@ -102,9 +73,9 @@ class TimestampCacheTagsChecksum implements CacheTagsChecksumInterface, CacheTag
 
     $query_tags = array_diff($tags, array_keys($this->tagCache));
     if ($query_tags) {
-      $backend_tags = $this->invalidator->getLastInvalidationTimestamps($query_tags);
-      $this->tagCache += $backend_tags;
-      $invalid = array_diff($query_tags, array_keys($backend_tags));
+      $tag_invalidations = $this->invalidator->getLastInvalidationTimestamps($query_tags);
+      $this->tagCache += $tag_invalidations;
+      $invalid = array_diff($query_tags, array_keys($tag_invalidations));
       if (!empty($invalid)) {
         // Invalidate any missing tags now. This is necessary because we cannot
         // zero-optimize our tag list -- we can't tell the difference between
@@ -139,9 +110,21 @@ class TimestampCacheTagsChecksum implements CacheTagsChecksumInterface, CacheTag
   /**
    * {@inheritdoc}
    */
-  public function reset() {
-    $this->tagCache = [];
-    $this->invalidatedTags = [];
+  protected function getTagInvalidationCounts(array $tags) {
+    // Note that the CacheTagsChecksumTrait assumes that the checksum strategy
+    // uses integer counters on each cache tag, but here we use timestamps. We
+    // return an empty array since we don't fit that mould. Currently only
+    // \Drupal\Core\Cache\CacheTagsChecksumTrait::calculateChecksum uses this
+    // method, which we override.
+    return [];
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  protected function getDatabaseConnection() {
+    // This is not injected to avoid a dependency on the database in the
+    // critical path. It is only needed during cache tag invalidations.
+    return \Drupal::database();
+  }
 }
