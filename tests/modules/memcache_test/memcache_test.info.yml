@@ -3,4 +3,4 @@ type: module
 description: 'Support module for memcache testing.'
 package: Testing
 dependencies:
-  - memcache
+  - memcache:memcache

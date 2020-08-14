@@ -6,6 +6,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Datetime\DateFormatter;
 use Drupal\Core\Link;
 use Drupal\Core\Messenger\MessengerTrait;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
 use Drupal\Component\Render\HtmlEscapedText;
 
@@ -15,6 +16,7 @@ use Drupal\Component\Render\HtmlEscapedText;
 class MemcacheStatisticsController extends ControllerBase {
 
   use MessengerTrait;
+  use StringTranslationTrait;
 
   /**
    * Callback for the Memcache Stats page.
@@ -39,7 +41,7 @@ class MemcacheStatisticsController extends ControllerBase {
       // Failed to load statistics. Provide a useful error about where to get
       // more information and help.
       $this->messenger()->addError(
-        t(
+        $this->t(
           'There may be a problem with your Memcache configuration. Please review @readme for more information.',
           [
             '@readme' => 'README.txt',
@@ -53,25 +55,25 @@ class MemcacheStatisticsController extends ControllerBase {
         $aggregate = array_pop($stats);
 
         if ($memcache->getMemcache() instanceof \Memcached) {
-          $version = t('Memcached v@version', ['@version' => phpversion('Memcached')]);
+          $version = $this->t('Memcached v@version', ['@version' => phpversion('Memcached')]);
         }
         elseif ($memcache->getMemcache() instanceof \Memcache) {
-          $version = t('Memcache v@version', ['@version' => phpversion('Memcache')]);
+          $version = $this->t('Memcache v@version', ['@version' => phpversion('Memcache')]);
         }
         else {
-          $version = t('Unknown');
-          $this->messenger()->addError(t('Failed to detect the memcache PECL extension.'));
+          $version = $this->t('Unknown');
+          $this->messenger()->addError($this->t('Failed to detect the memcache PECL extension.'));
         }
 
         foreach ($stats as $server => $statistics) {
           if (empty($statistics['uptime'])) {
-            $this->messenger()->addError(t('Failed to connect to server at :address.', [':address' => $server]));
+            $this->messenger()->addError($this->t('Failed to connect to server at :address.', [':address' => $server]));
           }
           else {
             $servers[] = $server;
 
-            $data['server_overview'][$server]    = t('v@version running @uptime', ['@version' => $statistics['version'], '@uptime' => \Drupal::service('date.formatter')->formatInterval($statistics['uptime'])]);
-            $data['server_pecl'][$server]        = t('n/a');
+            $data['server_overview'][$server]    = $this->t('v@version running @uptime', ['@version' => $statistics['version'], '@uptime' => \Drupal::service('date.formatter')->formatInterval($statistics['uptime'])]);
+            $data['server_pecl'][$server]        = $this->t('n/a');
             $data['server_time'][$server]        = \Drupal::service('date.formatter')->format($statistics['time']);
             $data['server_connections'][$server] = $this->statsConnections($statistics);
             $data['cache_sets'][$server]         = $this->statsSets($statistics);
@@ -89,30 +91,30 @@ class MemcacheStatisticsController extends ControllerBase {
       $report = [
         'uptime' => [
           'uptime' => [
-            'label'   => t('Uptime'),
+            'label'   => $this->t('Uptime'),
             'servers' => $data['server_overview'],
           ],
           'extension' => [
-            'label'   => t('PECL extension'),
+            'label'   => $this->t('PECL extension'),
             'servers' => [$servers[0] => $version],
           ],
           'time' => [
-            'label'   => t('Time'),
+            'label'   => $this->t('Time'),
             'servers' => $data['server_time'],
           ],
           'connections' => [
-            'label'   => t('Connections'),
+            'label'   => $this->t('Connections'),
             'servers' => $data['server_connections'],
           ],
         ],
         'stats' => [],
         'memory' => [
           'memory' => [
-            'label'   => t('Available memory'),
+            'label'   => $this->t('Available memory'),
             'servers' => $data['memory_available'],
           ],
           'evictions' => [
-            'label'   => t('Evictions'),
+            'label'   => $this->t('Evictions'),
             'servers' => $data['memory_evictions'],
           ],
         ],
@@ -120,10 +122,10 @@ class MemcacheStatisticsController extends ControllerBase {
 
       // Don't display aggregate totals if there's only one server.
       if (count($servers) > 1) {
-        $report['uptime']['uptime']['total']      = t('n/a');
+        $report['uptime']['uptime']['total']      = $this->t('n/a');
         $report['uptime']['extension']['servers'] = $data['server_pecl'];
         $report['uptime']['extension']['total']   = $version;
-        $report['uptime']['time']['total']        = t('n/a');
+        $report['uptime']['time']['total']        = $this->t('n/a');
         $report['uptime']['connections']['total'] = $this->statsConnections($aggregate);
         $report['memory']['memory']['total']      = $this->statsMemory($aggregate);
         $report['memory']['evictions']['total']   = number_format($aggregate['evictions']);
@@ -131,11 +133,11 @@ class MemcacheStatisticsController extends ControllerBase {
 
       // Report on stats.
       $stats = [
-        'sets'     => t('Sets'),
-        'gets'     => t('Gets'),
-        'counters' => t('Counters'),
-        'transfer' => t('Transferred'),
-        'average'  => t('Per-connection average'),
+        'sets'     => $this->t('Sets'),
+        'gets'     => $this->t('Gets'),
+        'counters' => $this->t('Counters'),
+        'transfer' => $this->t('Transferred'),
+        'average'  => $this->t('Per-connection average'),
       ];
 
       foreach ($stats as $type => $label) {
@@ -205,7 +207,7 @@ class MemcacheStatisticsController extends ControllerBase {
     }
     else {
       $output = $this->statsTablesRawOutput($cluster, $server, [], $type);
-      $this->messenger()->addMessage(t('No @type statistics for this bin.', ['@type' => $type]));
+      $this->messenger()->addMessage($this->t('No @type statistics for this bin.', ['@type' => $type]));
     }
 
     return $output;
@@ -415,7 +417,7 @@ class MemcacheStatisticsController extends ControllerBase {
     }
 
     if (count($servers) > 1) {
-      $headers = array_merge(['', t('Totals')], $links);
+      $headers = array_merge(['', $this->t('Totals')], $links);
     }
     else {
       $headers = array_merge([''], $links);
