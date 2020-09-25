@@ -109,7 +109,11 @@ class MemcacheBackend implements CacheBackendInterface {
    */
   private function debug() :bool {
     try {
-      return \Drupal::service('memcache.settings')->get('debug');
+      $debug = \Drupal::service('memcache.settings')->get('debug');
+      if ($debug) {
+        return $debug;
+      }
+      return false;
     }
     catch (ServiceNotFoundException $e) {
       return false;
