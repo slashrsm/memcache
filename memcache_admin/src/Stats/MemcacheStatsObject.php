@@ -222,8 +222,8 @@ class MemcacheStatsObject implements MemcacheStatsInterface {
       [
         '@get'   => number_format($get, 2),
         '@set'   => number_format($set, 2),
-        '@read'  => format_size(number_format($read, 2)),
-        '@write' => format_size(number_format($write, 2)),
+        '@read'  => format_size((int) number_format($read, 2)),
+        '@write' => format_size((int) number_format($write, 2)),
       ]
     );
   }
