@@ -32,16 +32,6 @@ class MemcacheAdminSubscriber implements EventSubscriberInterface {
   public function displayStatistics(FilterResponseEvent $event) {
     $user = \Drupal::currentUser();
 
-    // Removed exclusion criteria, untested. Will likely need to add some of
-    // these back in.
-    // @codingStandardsIgnoreStart
-    //   strstr($_SERVER['PHP_SELF'], '/update.php')
-    //   substr($_GET['q'], 0, strlen('batch')) == 'batch'
-    //   strstr($_GET['q'], 'autocomplete')
-    //   substr($_GET['q'], 0, strlen('system/files')) == 'system/files'
-    //   in_array($_GET['q'], ['upload/js', 'admin/content/node-settings/rebuild'])
-    // @codingStandardsIgnoreEnd
-    // @todo validate these checks
     if ($user->id() == 0) {
       // Suppress for the above criteria.
     }
