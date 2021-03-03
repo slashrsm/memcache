@@ -1,8 +1,10 @@
 name: Memcache Admin
 description: Adds a User Interface to monitor the Memcache for this site.
 package: Performance and scalability
+
 type: module
-core_version_requirement: ^8.8 || ^9
+core: 8.x
+core_version_requirement: ^8 || ^9
 
 configure: memcache_admin.settings
 
