@@ -16,6 +16,12 @@ class MemcachedDriver extends DriverBase {
     $full_key = $this->key($key);
     $result = $this->memcache->set($full_key, $value, $exp);
 
+    // If there was a MEMCACHED_E2BIG error, split the value into pieces
+    // and cache them individually.
+    if ($this->memcache->getResultCode() == MEMCACHED_E2BIG) {
+      $result = $this->piecesSet($key, $value, $exp);
+    }
+
     // Something bad happened. Let's log the problem.
     if (!$result && $this->settings->get('debug')) {
       $result_code = $this->memcache->getResultCode();
@@ -92,6 +98,11 @@ class MemcachedDriver extends DriverBase {
     $cid_lookup = array_flip($full_keys);
 
     foreach (array_filter($results) as $key => $value) {
+      // This is a multi-part value.
+      if (is_object($value) && !empty($value->multi_part_data)) {
+        $value = $this->piecesGet($value->data, $value->cid);
+      }
+
       $cid_results[$cid_lookup[$key]] = $value;
     }
 

@@ -4,8 +4,11 @@ namespace Drupal\memcache\Driver;
 
 use Drupal\Component\Utility\Timer;
 use Drupal\Core\Logger\LoggerChannelTrait;
+use Drupal\Core\Site\Settings;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\memcache\MemcacheSettings;
 use Drupal\memcache\DrupalMemcacheInterface;
+use Psr\Log\LogLevel;
 
 /**
  * Class DriverBase.
@@ -87,6 +90,11 @@ abstract class DriverBase implements DrupalMemcacheInterface {
 
     $full_key = $this->key($key);
     $result   = $this->memcache->get($full_key);
+
+    // This is a multi-part value.
+    if (is_object($result) && !empty($result->multi_part_data)) {
+      $result = $this->piecesGet($result->data, $result->cid);
+    }
 
     if ($collect_stats) {
       $this->statsWrite('get', 'cache', [$full_key => (bool) $result]);
@@ -356,4 +364,327 @@ abstract class DriverBase implements DrupalMemcacheInterface {
     }
   }
 
+  /**
+   *  Split a large item into pieces and place them into memcache
+   *
+   * @param string $key
+   *   The string with which you will retrieve this item later.
+   * @param mixed $value
+   *   The item to be stored.
+   * @param int $exp
+   *   (optional) Expiration time in seconds. If it's 0, the item never expires
+   *   (but memcached server doesn't guarantee this item to be stored all the
+   *   time, it could be deleted from the cache to make place for other items).
+   *
+   * @return bool
+   */
+  protected function piecesSet($key, $value, $exp = 0) {
+    static $recursion = 0;
+    if (!empty($value->multi_part_data) || !empty($value->multi_part_pieces)) {
+      // Prevent an infinite loop.
+      return FALSE;
+    }
+
+    // Recursion happens when __dmemcache_piece_cache outgrows the largest
+    // memcache slice (1 MiB by default) -- prevent an infinite loop and later
+    // generate a watchdog error.
+    if ($recursion) {
+      return FALSE;
+    }
+    $recursion++;
+
+    $full_key = $this->key($key);
+
+    // Cache the name of this key so if it is deleted later we know to also
+    // delete the cache pieces.
+    if (!$this->piecesCacheSet($full_key, $exp)) {
+      // We're caching a LOT of large items. Our piece_cache has exceeded the
+      // maximum memcache object size (default of 1 MiB).
+      $piece_cache = &drupal_static('dmemcache_piece_cache', array());
+
+      register_shutdown_function(function ($count) {
+        \Drupal::logger('memcache')->log(
+          LogLevel::ERROR,
+          new TranslatableMarkup(
+            'Too many over-sized cache items (@count) has caused the dmemcache_piece_cache to exceed the maximum memcache object size (default of 1 MiB). Now relying on memcache auto-expiration to eventually clean up over-sized cache pieces upon deletion.',
+            [
+              '@count' => $count,
+            ]
+          ));
+
+      }, count($piece_cache));
+    }
+
+    if (Settings::get('memcache_log_data_pieces', 2)) {
+      Timer::start('memcache_split_data');
+    }
+
+    // We need to split the item into pieces, so convert it into a string.
+    if (is_string($value)) {
+      $data = $value;
+      $serialized = FALSE;
+    }
+    else {
+      $serialize_function = $this->serializeFunction();
+      $data = $serialize_function($value);
+      $serialized = TRUE;
+    }
+
+    // Account for any metadata stored alongside the data.
+    $max_len = Settings::get('memcache_data_max_length', 1048576) - (512 + strlen($full_key));
+    $pieces = str_split($data, $max_len);
+
+    $piece_count = count($pieces);
+
+    // Create a placeholder item containing data about the pieces.
+    $cache = new \stdClass;
+    // $key gets run through ::key() later inside ::set().
+    $cache->cid = $key;
+    $cache->created = REQUEST_TIME;
+    $cache->expire = $exp;
+    $cache->data = new \stdClass;
+    $cache->data->serialized = $serialized;
+    $cache->data->piece_count = $piece_count;
+    $cache->multi_part_data = TRUE;
+    $result = $this->set($cache->cid, $cache, $exp);
+
+    // Create a cache item for each piece of data.
+    foreach ($pieces as $id => $piece) {
+      $cache = new \stdClass;
+      $cache->cid = $this->piecesKey($key, $id);
+      $cache->created = REQUEST_TIME;
+      $cache->expire = $exp;
+      $cache->data = $piece;
+      $cache->multi_part_piece = TRUE;
+
+      $result &= $this->set($cache->cid, $cache, $exp);
+    }
+
+    if (Settings::get('memcache_log_data_pieces', 2) && $piece_count >= Settings::get('memcache_log_data_pieces', 2)) {
+      if (function_exists('format_size')) {
+        $data_size = format_size(strlen($data));
+      }
+      else {
+        $data_size = number_format(strlen($data)) . ' byte';
+      }
+      register_shutdown_function(function ($time, $bytes, $pieces, $key) {
+        \Drupal::logger('memcache')->log(
+          LogLevel::WARNING,
+          new TranslatableMarkup(
+            'Spent @time ms splitting @bytes object into @pieces pieces, cid = @key',
+            [
+              '@time' => $time,
+              '@bytes' => $bytes,
+              '@pieces' => $pieces,
+              '@key' => $key,
+            ]
+          ));
+
+      }, Timer::read('memcache_split_data'), $data_size, $piece_count, $this->key($key));
+    }
+
+    $recursion--;
+
+    // TRUE if all pieces were saved correctly.
+    return $result;
+  }
+
+  /**
+   * Retrieve a value from the cache.
+   *
+   * @param $item
+   *   The placeholder cache item from ::piecesSet().
+   * @param $key
+   *   The key with which the item was stored.
+   *
+   * @return object|bool
+   *   The item which was originally saved or FALSE.
+   */
+  protected function piecesGet($item, $key) {
+    // Create a list of keys for the pieces of data.
+    for ($id = 0; $id < $item->piece_count; $id++) {
+      $keys[] = $this->piecesKey($key, $id);
+    }
+
+    // Retrieve all the pieces of data and append them together.
+    $pieces = $this->getMulti($keys);
+    $data = '';
+    foreach ($pieces as $piece) {
+      // The piece may be NULL if it didn't exist in memcache. If so,
+      // we have to just return false for the entire set because we won't
+      // be able to reconstruct the original data without all the pieces.
+      if (!$piece) {
+        return FALSE;
+      }
+      $data .= $piece->data;
+    }
+    unset($pieces);
+
+    // If necessary unserialize the item.
+    if (empty($item->serialized)) {
+      return $data;
+    }
+    else {
+      $unserialize_function = $this->unserializeFunction();
+      return $unserialize_function($data);
+    }
+  }
+
+  /**
+   * Generates a key name for a multi-part data piece based on the sequence ID.
+   *
+   * @param int $id
+   *   The sequence ID of the data piece.
+   * @param int $key
+   *   The original CID of the cache item.
+   *
+   * @return string
+   */
+  protected function piecesKey($key, $id) {
+    return $this->key('_multi'. (string)$id . "-$key");
+  }
+
+  /**
+   * Track active keys with multi-piece values, necessary for efficient cleanup.
+   *
+   * We can't use variable_get/set for tracking this information because if the
+   * variables array grows >1M and has to be split into pieces we'd get stuck in
+   * an infinite loop. Storing this information in memcache means it can be lost,
+   * but in that case the pieces will still eventually be auto-expired by
+   * memcache.
+   *
+   * @param string $cid
+   *   The cid of the root multi-piece value.
+   * @param integer $exp
+   *   Timestamp when the cached item expires. If NULL, the $cid will be deleted.
+   *
+   * @return bool
+   *   TRUE on succes, FALSE otherwise.
+   */
+  protected function piecesCacheSet($cid, $exp = NULL) {
+    // Always refresh cached copy to minimize multi-thread race window.
+    $piece_cache = &drupal_static('dmemcache_piece_cache_' . $this->prefix, array());
+    $piece_cache = $this->get('__dmemcache_piece_cache');
+    if (!is_array($piece_cache)) {
+      $piece_cache = array();
+    }
+
+    if (isset($exp)) {
+      if ($exp <= 0) {
+        // If no expiration time is set, defaults to 30 days.
+        $exp = REQUEST_TIME + 2592000;
+      }
+      $piece_cache[$cid] = $exp;
+    }
+    else {
+      unset($piece_cache[$cid]);
+    }
+
+    return $this->set('__dmemcache_piece_cache', $piece_cache);
+  }
+
+  /**
+   * Determine if a key has multi-piece values.
+   *
+   * @param string $name
+   *   The cid to check for multi-piece values.
+   *
+   * @return integer
+   *   Expiration time if key has multi-piece values, otherwise FALSE.
+   */
+  function piecesCacheGet($name) {
+    static $drupal_static_fast;
+    if (!isset($drupal_static_fast)) {
+      $drupal_static_fast['piece_cache_' . $this->prefix] = &drupal_static('dmemcache_piece_cache_' . $this->prefix, FALSE);
+    }
+    $piece_cache = &$drupal_static_fast['piece_cache'];
+
+    if (!is_array($piece_cache)) {
+      $piece_cache = $this->get('__dmemcache_piece_cache');
+      // On a website with no over-sized cache pieces, initialize the variable so
+      // we never load it more than once per page versus once per DELETE.
+      if (!is_array($piece_cache)) {
+        $this->set('__dmemcache_piece_cache', array());
+      }
+    }
+
+    if (isset($piece_cache[$name])) {
+      // Return the expiration time of the multi-piece cache item.
+      return $piece_cache[$name];
+    }
+    // Item doesn't have multiple pieces.
+    return FALSE;
+  }
+
+  /**
+   * Determine which serialize extension to use: serialize (none), igbinary,
+   * or msgpack.
+   *
+   * By default we prefer the igbinary extension, then the msgpack extension,
+   * then the core serialize functions. This can be overridden in settings.php.
+   */
+  protected function serializeExtension() {
+    static $extension = NULL;
+    if ($extension === NULL) {
+      $preferred = strtolower(Settings::get('memcache_serialize'));
+      // Fastpath if we're forcing php's own serialize function.
+      if ($preferred == 'serialize') {
+        $extension = $preferred;
+      }
+      // Otherwise, find an available extension favoring configuration.
+      else {
+        $igbinary_available = extension_loaded('igbinary');
+        $msgpack_available = extension_loaded('msgpack');
+        if ($preferred == 'igbinary' && $igbinary_available) {
+          $extension = $preferred;
+        }
+        elseif ($preferred == 'msgpack' && $msgpack_available) {
+          $extension = $preferred;
+        }
+        else {
+          // No (valid) serialize extension specified, try igbinary.
+          if ($igbinary_available) {
+            $extension = 'igbinary';
+          }
+          // Next try msgpack.
+          else if ($msgpack_available) {
+            $extension = 'msgpack';
+          }
+          // Finally fall back to core serialize.
+          else {
+            $extension = 'serialize';
+          }
+        }
+      }
+    }
+    return $extension;
+  }
+
+  /**
+   * Return proper serialize function.
+   */
+  protected function serializeFunction() {
+    switch ($this->serializeExtension()) {
+      case 'igbinary':
+        return 'igbinary_serialize';
+      case 'msgpack':
+        return 'msgpack_pack';
+      default:
+        return 'serialize';
+    }
+  }
+
+  /**
+   * Return proper unserialize function.
+   */
+  function unserializeFunction() {
+    switch ($this->serializeExtension()) {
+      case 'igbinary':
+        return 'igbinary_unserialize';
+      case 'msgpack':
+        return 'msgpack_unpack';
+      default:
+        return 'unserialize';
+    }
+  }
 }
